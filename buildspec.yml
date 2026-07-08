@@ -1,0 +1,42 @@
+version: 0.2
+
+env:
+  parameter-store:
+    API_GATEWAY_ID: /gastos/api-gateway-id
+    FRONTEND_S3_BUCKET: /gastos/frontend/s3-bucket
+    CLOUDFRONT_DISTRIBUTION_ID: /gastos/cloudfront/distribution-id
+    VITE_API_BASE: /gastos/frontend/api-base
+    VITE_COGNITO_USER_POOL_ID: /gastos/cognito/user-pool-id
+    VITE_COGNITO_CLIENT_ID: /gastos/cognito/client-id
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+      nodejs: 20
+
+  pre_build:
+    commands:
+      - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - export VITE_AWS_REGION=$AWS_REGION
+
+  build:
+    commands:
+      - echo "=== Deploy Lambda gastos-ingest ==="
+      - cd backend/lambdas/ingest && bash deploy.sh && cd -
+
+      - echo "=== Deploy Lambda gastos-query ==="
+      - cd backend/lambdas/query && bash deploy.sh && cd -
+
+      - echo "=== Build frontend ==="
+      - cd frontend && npm ci && npm run build && cd -
+
+  post_build:
+    commands:
+      - echo "=== Sync frontend a S3 ==="
+      - aws s3 sync frontend/dist/ s3://$FRONTEND_S3_BUCKET --delete
+
+      - echo "=== Invalidar cache de CloudFront ==="
+      - aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+
+      - echo "=== Deploy completo ==="

@@ -216,6 +216,8 @@ Tabla: `gastos`
 **Categorías válidas:**
 `ALIMENTACION, TRANSPORTE, SALUD, ENTRETENIMIENTO, HOGAR, ROPA, EDUCACION, RESTAURANTE, SERVICIOS, MASCOTAS, AUTOMOVIL, OTROS`
 
+**Cómo se asigna la categoría hoy (parser temporal, no Bedrock):** `bedrock.py` tiene un diccionario `CATEGORY_KEYWORDS` que matchea palabras clave del mensaje (normalizado sin acentos, sin distinguir mayúsculas, por palabra completa) contra la categoría correspondiente — por ejemplo `coto`/`jumbo`/`carniceria` → `ALIMENTACION`, `uber`/`cabify` → `TRANSPORTE`, `nafta`/`mecanico` → `AUTOMOVIL`. Lo que no matchea ningún keyword cae en `OTROS`. No es clasificación por NLP real, es un mapeo fijo — se reemplaza cuando se habilite Bedrock.
+
 ### GSI para filtro por mes
 
 El filtro por mes (`GET /expenses?month=2026-07`) usa un GSI `month-date-index` (Partition Key `month`, Sort Key `date`), en vez de un `scan` completo con `FilterExpression`. El atributo `month` se deriva de `date[:7]` al guardar el gasto en `dynamo.py`.

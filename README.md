@@ -273,10 +273,14 @@ npm run dev      # → http://localhost:5173
 
 ---
 
-## Deployar cambios en la Lambda query
+## Deploy
+
+**Automático (recomendado):** cualquier push a `main` dispara el pipeline de CodePipeline, que deploya las 2 Lambdas y el frontend solo. Ver [Fase 5](#fase-5--cómo-quedó) más abajo.
+
+**Manual (para debugging o correr un deploy suelto sin pushear):**
 
 ```bash
-cd backend/lambdas/query/
+cd backend/lambdas/query/   # o backend/lambdas/ingest/
 
 # Definir variables de entorno con tus IDs reales
 export AWS_ACCOUNT_ID=<tu-account-id>
@@ -286,7 +290,7 @@ export MSYS_NO_PATHCONV=1   # necesario en Git Bash en Windows
 bash deploy.sh
 ```
 
-El script es idempotente: detecta si la función ya existe y solo actualiza el código.
+Ambos scripts (`query/deploy.sh` e `ingest/deploy.sh`) son idempotentes: detectan si la función/integración/ruta ya existen y solo actualizan lo necesario — son los mismos que corre el pipeline en `buildspec.yml`.
 
 ---
 
@@ -299,16 +303,14 @@ El script es idempotente: detecta si la función ya existe y solo actualiza el c
 | 3a | ✅ Completa | Lambda query deployada con endpoint /expenses |
 | 3b | ✅ Completa | Frontend React deployado en S3 + CloudFront |
 | 4 | ✅ Completa | Autenticación con AWS Cognito + Amplify JS SDK |
-| 5 | 🔜 Pendiente | CI/CD con CodePipeline + CodeBuild — repo ya en GitHub, listo para conectar |
+| 5 | ✅ Completa | CI/CD con CodePipeline + CodeBuild, deploy automático en cada push a `main` |
 
 ### Fase 3b — cómo quedó
 
 1. Bucket S3 privado (`gastos-bot-frontend-<account-id>`), sin website hosting público ni acceso público directo
 2. Distribución CloudFront con Origin Access Control (OAC) — solo CloudFront puede leer del bucket
-3. Deploy manual: `npm run build` + `aws s3 sync dist/ s3://<bucket> --delete`
+3. Deploy: `npm run build` + `aws s3 sync dist/ s3://<bucket> --delete` (automatizado desde Fase 5, ver abajo)
 4. Dominio de CloudFront agregado a `AllowOrigins` del CORS de API Gateway
-
-**Pendiente:** no hay pipeline automático (eso es Fase 5), así que cada cambio en el frontend requiere repetir el build + sync manualmente, e invalidar la caché de CloudFront si hace falta ver el cambio al instante.
 
 ### Fase 4 — cómo quedó
 
@@ -319,10 +321,24 @@ El script es idempotente: detecta si la función ya existe y solo actualiza el c
 5. El frontend adjunta el `idToken` en el header `Authorization` de cada request
 6. CORS habilitado a nivel API para que el browser pueda mandar el header custom
 
-### Fase 5 — plan tentativo
+### Fase 5 — cómo quedó
 
-Repo ya publicado en GitHub, listo como *source* de CodePipeline.
+```mermaid
+flowchart LR
+    DEV(["git push a main"]) --> GH["GitHub"]
+    GH -->|"CodeStar Connection"| SRC["CodePipeline: Source"]
+    SRC --> BUILD["CodePipeline: Build\n(CodeBuild, corre buildspec.yml)"]
+    BUILD -->|"deploy.sh"| ING["Lambda gastos-ingest"]
+    BUILD -->|"deploy.sh"| QRY["Lambda gastos-query"]
+    BUILD -->|"npm run build + s3 sync"| S3F[("S3 frontend")]
+    BUILD -->|"create-invalidation"| CF["CloudFront"]
+```
 
-1. Crear `buildspec.yml` (todavía no existe)
-2. Formalizar el deploy de `gastos-ingest` (hoy solo `gastos-query` tiene `deploy.sh`)
-3. Definir pipeline: source (GitHub) → build → deploy Lambdas + frontend a S3/CloudFront
+- `backend/lambdas/ingest/deploy.sh` — mismo patrón idempotente que `query/deploy.sh` (detecta si la Lambda/integración/ruta ya existen, actualiza en vez de duplicar)
+- `buildspec.yml` en la raíz: 4 fases (`install` → `pre_build` → `build` → `post_build`), deploya las 2 Lambdas y sincroniza el frontend a S3 + invalida CloudFront
+- Variables de config (API Gateway ID, bucket del frontend, distribution ID, IDs de Cognito) via `env.parameter-store` en SSM — nada hardcodeado en el `buildspec.yml`
+- **CodeStar Connection** a GitHub — la autorización inicial requiere un clic manual en la consola (no es 100% automatizable por CLI)
+- **CodePipeline tipo V2** — cobra por minuto de ejecución en vez del flat mensual de V1, más barato para uso esporádico como este
+- Dos IAM roles de mínimo privilegio: uno para CodeBuild (acceso acotado a los recursos exactos que toca el build) y uno para CodePipeline (orquestación + la connection + el proyecto de CodeBuild)
+
+**Deploy manual queda obsoleto:** ya no hace falta correr `npm run build` + `aws s3 sync` a mano — cualquier push a `main` dispara el pipeline solo.

@@ -1,7 +1,29 @@
 import re
+import unicodedata
 from datetime import datetime
 
 AMOUNT_PATTERN = r'\$?\s*(\d[\d.,]*)'
+
+CATEGORY_KEYWORDS = {
+    'ALIMENTACION': ['coto', 'jumbo', 'carrefour', 'dietetica', 'frizata', 'delivery', 'carniceria'],
+    'TRANSPORTE': ['sube', 'uber', 'cabify'],
+    'SALUD': ['farmacia', 'suplementos'],
+    'MASCOTAS': ['petshop', 'bano perros', 'guarderia perros'],
+    'AUTOMOVIL': ['nafta', 'mecanico', 'aca'],
+}
+
+def _normalize(text):
+    # Saca acentos y pasa a minuscula, para que "Carnicería" y "carniceria" matcheen igual
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+    return text.lower()
+
+def _detect_category(message):
+    normalized = _normalize(message)
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        for keyword in keywords:
+            if re.search(r'\b' + re.escape(keyword) + r'\b', normalized):
+                return category
+    return 'OTROS'
 
 def _parse_amount(raw):
     if ',' in raw:
@@ -24,11 +46,11 @@ def parse_expense(message):
 
     # Extraer lugar (todo antes del monto)
     place = re.sub(AMOUNT_PATTERN, '', message).strip()
-    
+
     return {
         'place': place,
         'amount': amount,
         'currency': 'ARS',
-        'category': 'OTROS',
+        'category': _detect_category(message),
         'date': today
     }

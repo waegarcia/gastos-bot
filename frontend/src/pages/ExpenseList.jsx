@@ -63,7 +63,7 @@ export default function ExpenseList() {
           No hay gastos registrados para este mes.
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow overflow-hidden">
+        <div className="bg-white rounded-2xl shadow overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
               <tr>

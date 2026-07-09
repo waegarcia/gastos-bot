@@ -1,3 +1,4 @@
+import hmac
 import json
 import boto3
 import urllib.request
@@ -8,6 +9,10 @@ ssm = boto3.client('ssm', region_name='us-east-1')
 
 def get_telegram_token():
     response = ssm.get_parameter(Name='/gastos/telegram-token', WithDecryption=True)
+    return response['Parameter']['Value']
+
+def get_webhook_secret():
+    response = ssm.get_parameter(Name='/gastos/telegram-webhook-secret', WithDecryption=True)
     return response['Parameter']['Value']
 
 def get_allowed_chat_ids():
@@ -23,6 +28,11 @@ def send_telegram_message(chat_id, text, token):
 
 def lambda_handler(event, context):
     try:
+        headers = event.get('headers', {})
+        received_secret = headers.get('x-telegram-bot-api-secret-token', '')
+        if not hmac.compare_digest(received_secret, get_webhook_secret()):
+            return {'statusCode': 403, 'body': 'forbidden'}
+
         body = json.loads(event.get('body', '{}'))
         message = body.get('message', {})
         chat_id = message.get('chat', {}).get('id')

@@ -28,6 +28,8 @@ def lambda_handler(event, context):
         chat_id = message.get('chat', {}).get('id')
         text = message.get('text', '')
 
+        print(f"Update recibido: chat_id={chat_id} chat_type={message.get('chat', {}).get('type')} text={text!r}")
+
         if not chat_id or not text:
             return {'statusCode': 200, 'body': 'ok'}
 

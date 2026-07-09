@@ -2,10 +2,10 @@ import re
 import unicodedata
 from datetime import datetime
 
-AMOUNT_PATTERN = r'\$?\s*(\d[\d.,]*)'
+AMOUNT_PATTERN = r'\$\s*(\d[\d.,]*)'  # "$" obligatorio, para no confundir horas/numeros sueltos con montos
 
 CATEGORY_KEYWORDS = {
-    'ALIMENTACION': ['coto', 'jumbo', 'carrefour', 'dietetica', 'frizata', 'delivery', 'carniceria'],
+    'ALIMENTACION': ['coto', 'jumbo', 'carrefour', 'disco', 'dietetica', 'frizata', 'delivery', 'carniceria'],
     'TRANSPORTE': ['sube', 'uber', 'cabify'],
     'SALUD': ['farmacia', 'suplementos'],
     'MASCOTAS': ['petshop', 'bano perros', 'guarderia perros'],
@@ -38,11 +38,13 @@ def _parse_amount(raw):
     return float(raw)
 
 def parse_expense(message):
-    today = datetime.now().strftime('%Y-%m-%d')
-
-    # Extraer monto
+    # Sin monto detectable, no es un gasto (evita guardar charla/ruido como si fuera uno)
     amount_match = re.search(AMOUNT_PATTERN, message)
-    amount = _parse_amount(amount_match.group(1)) if amount_match else 0.0
+    if not amount_match:
+        return None
+
+    today = datetime.now().strftime('%Y-%m-%d')
+    amount = _parse_amount(amount_match.group(1))
 
     # Extraer lugar (todo antes del monto)
     place = re.sub(AMOUNT_PATTERN, '', message).strip()

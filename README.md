@@ -340,5 +340,6 @@ flowchart LR
 - **CodeStar Connection** a GitHub — la autorización inicial requiere un clic manual en la consola (no es 100% automatizable por CLI)
 - **CodePipeline tipo V2** — cobra por minuto de ejecución en vez del flat mensual de V1, más barato para uso esporádico como este
 - Dos IAM roles de mínimo privilegio: uno para CodeBuild (acceso acotado a los recursos exactos que toca el build) y uno para CodePipeline (orquestación + la connection + el proyecto de CodeBuild)
+- **Regla de EventBridge** (`gastos-bot-pipeline-trigger`) — necesaria para que el pipeline se dispare solo en cada push. Al crear el pipeline vía CLI (en vez de por consola), esta regla **no se crea automáticamente** — hay que armarla a mano: escucha eventos `CodeStar Connections Repository State Change` de esta connection específica, filtrados a `referenceUpdated` sobre la rama `main`, con un rol IAM propio acotado a `codepipeline:StartPipelineExecution` sobre este pipeline únicamente.
 
 **Deploy manual queda obsoleto:** ya no hace falta correr `npm run build` + `aws s3 sync` a mano — cualquier push a `main` dispara el pipeline solo.

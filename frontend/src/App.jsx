@@ -6,7 +6,7 @@ import ExpenseList from './pages/ExpenseList'
 
 const NAV = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'list',      label: 'Gastos' },
+  { id: 'list', label: 'Gastos' },
 ]
 
 export default function App() {
@@ -34,17 +34,16 @@ export default function App() {
       {/* Navbar */}
       <nav className="bg-white shadow-sm border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 flex items-center h-14 gap-6">
-          <span className="font-bold text-indigo-600 text-lg tracking-tight">💸 Gastos Bot</span>
+          <span className="font-bold text-indigo-600 text-lg tracking-tight">Gastos Bot</span>
           <div className="flex gap-1 flex-1">
             {NAV.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setPage(item.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  page === item.id
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${page === item.id
                     ? 'bg-indigo-50 text-indigo-700'
                     : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 {item.label}
               </button>

@@ -153,7 +153,35 @@ fi
 
 echo ""
 echo "============================================"
-echo " PASO 6: Permisos para que API Gateway invoque Lambda"
+echo " PASO 6: Crear ruta PUT /expenses/{expense_id}"
+echo "============================================"
+
+EXISTING_PUT_ROUTE=$(aws apigatewayv2 get-routes \
+    --api-id "$API_ID" \
+    --region "$REGION" \
+    --query "Items[?RouteKey=='PUT $DELETE_ROUTE_PATH'].RouteId" \
+    --output text)
+
+if [ -n "$EXISTING_PUT_ROUTE" ]; then
+    PUT_ROUTE_ID="$EXISTING_PUT_ROUTE"
+    echo "Ruta ya existe: $PUT_ROUTE_ID"
+else
+    echo "Creando ruta PUT $DELETE_ROUTE_PATH..."
+    PUT_ROUTE_ID=$(aws apigatewayv2 create-route \
+        --api-id "$API_ID" \
+        --route-key "PUT $DELETE_ROUTE_PATH" \
+        --target "integrations/$INTEGRATION_ID" \
+        --authorization-type "JWT" \
+        --authorizer-id "$AUTHORIZER_ID" \
+        --region "$REGION" \
+        --query 'RouteId' \
+        --output text)
+    echo "OK: Route ID = $PUT_ROUTE_ID"
+fi
+
+echo ""
+echo "============================================"
+echo " PASO 7: Permisos para que API Gateway invoque Lambda"
 echo "============================================"
 
 SOURCE_ARN="arn:aws:execute-api:$REGION:$ACCOUNT_ID:$API_ID/$STAGE/GET$ROUTE_PATH"
@@ -179,9 +207,20 @@ aws lambda add-permission \
     --region "$REGION" \
     --output table 2>/dev/null && echo "OK: Permiso agregado" || echo "OK: Permiso ya existia, continuando..."
 
+PUT_SOURCE_ARN="arn:aws:execute-api:$REGION:$ACCOUNT_ID:$API_ID/$STAGE/PUT$DELETE_ROUTE_PATH"
+
+aws lambda add-permission \
+    --function-name "$FUNCTION_NAME" \
+    --statement-id "apigateway-put-expenses" \
+    --action "lambda:InvokeFunction" \
+    --principal "apigateway.amazonaws.com" \
+    --source-arn "$PUT_SOURCE_ARN" \
+    --region "$REGION" \
+    --output table 2>/dev/null && echo "OK: Permiso agregado" || echo "OK: Permiso ya existia, continuando..."
+
 echo ""
 echo "============================================"
-echo " PASO 7: Re-deployar stage prod"
+echo " PASO 8: Re-deployar stage prod"
 echo "============================================"
 aws apigatewayv2 create-deployment \
     --api-id "$API_ID" \
@@ -199,10 +238,12 @@ echo "Endpoint disponible en:"
 echo "  GET https://$API_ID.execute-api.$REGION.amazonaws.com/$STAGE$ROUTE_PATH"
 echo "  GET https://$API_ID.execute-api.$REGION.amazonaws.com/$STAGE$ROUTE_PATH?month=2026-07"
 echo "  DELETE https://$API_ID.execute-api.$REGION.amazonaws.com/$STAGE$DELETE_ROUTE_PATH?date=YYYY-MM-DD"
+echo "  PUT https://$API_ID.execute-api.$REGION.amazonaws.com/$STAGE$DELETE_ROUTE_PATH?date=YYYY-MM-DD"
 echo ""
 echo "IDs para referencia:"
-echo "  Lambda ARN:      $LAMBDA_ARN"
-echo "  Integration ID:  $INTEGRATION_ID"
-echo "  Route ID (GET):  $ROUTE_ID"
+echo "  Lambda ARN:        $LAMBDA_ARN"
+echo "  Integration ID:    $INTEGRATION_ID"
+echo "  Route ID (GET):    $ROUTE_ID"
 echo "  Route ID (DELETE): $DELETE_ROUTE_ID"
+echo "  Route ID (PUT):    $PUT_ROUTE_ID"
 echo ""

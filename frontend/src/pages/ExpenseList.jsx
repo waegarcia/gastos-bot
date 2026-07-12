@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getExpenses, deleteExpense, currentMonth } from '../services/api'
+import { getExpenses, deleteExpense, updateExpense, currentMonth } from '../services/api'
 import MonthPicker from '../components/MonthPicker'
 
 const CATEGORY_COLORS = {
@@ -23,6 +23,9 @@ export default function ExpenseList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm] = useState({ place: '', amount: '', category: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -51,6 +54,35 @@ export default function ExpenseList() {
       setError(err.message)
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  function handleEditStart(expense) {
+    setEditingId(expense.expense_id)
+    setEditForm({ place: expense.place, amount: expense.amount, category: expense.category })
+  }
+
+  function handleEditCancel() {
+    setEditingId(null)
+  }
+
+  async function handleEditSave(expense) {
+    setSavingEdit(true)
+    try {
+      const updates = {
+        place: editForm.place,
+        amount: parseFloat(editForm.amount),
+        category: editForm.category,
+      }
+      await updateExpense(expense.expense_id, expense.date, updates)
+      setExpenses((prev) =>
+        prev.map((e) => (e.expense_id === expense.expense_id ? { ...e, ...updates, amount: String(updates.amount) } : e))
+      )
+      setEditingId(null)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -90,36 +122,97 @@ export default function ExpenseList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {expenses.map((e) => (
-                <tr key={e.expense_id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-                    {formatDate(e.date)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-800 font-medium">
-                    {e.place}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS.OTROS}`}>
-                      {e.category}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-                    {e.logged_by || '-'}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right whitespace-nowrap">
-                    {formatARS(e.amount)}
-                  </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => handleDelete(e)}
-                      disabled={deletingId === e.expense_id}
-                      className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
-                    >
-                      {deletingId === e.expense_id ? 'Borrando...' : 'Borrar'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {expenses.map((e) => {
+                const isEditing = editingId === e.expense_id
+                return (
+                  <tr key={e.expense_id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                      {formatDate(e.date)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-800 font-medium">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.place}
+                          onChange={(ev) => setEditForm((f) => ({ ...f, place: ev.target.value }))}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        />
+                      ) : (
+                        e.place
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <select
+                          value={editForm.category}
+                          onChange={(ev) => setEditForm((f) => ({ ...f, category: ev.target.value }))}
+                          className="border border-gray-300 rounded px-2 py-1 text-xs"
+                        >
+                          {Object.keys(CATEGORY_COLORS).map((cat) => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS.OTROS}`}>
+                          {e.category}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                      {e.logged_by || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right whitespace-nowrap">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editForm.amount}
+                          onChange={(ev) => setEditForm((f) => ({ ...f, amount: ev.target.value }))}
+                          className="w-28 border border-gray-300 rounded px-2 py-1 text-sm text-right"
+                        />
+                      ) : (
+                        formatARS(e.amount)
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={() => handleEditSave(e)}
+                            disabled={savingEdit}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-40"
+                          >
+                            {savingEdit ? 'Guardando...' : 'Guardar'}
+                          </button>
+                          <button
+                            onClick={handleEditCancel}
+                            disabled={savingEdit}
+                            className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-40"
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleEditStart(e)}
+                            className="text-xs text-indigo-500 hover:text-indigo-700"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDelete(e)}
+                            disabled={deletingId === e.expense_id}
+                            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+                          >
+                            {deletingId === e.expense_id ? 'Borrando...' : 'Borrar'}
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
             <tfoot className="bg-gray-50 border-t border-gray-200">
               <tr>

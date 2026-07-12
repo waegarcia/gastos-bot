@@ -43,6 +43,27 @@ export async function deleteExpense(expenseId, date) {
 }
 
 /**
+ * Edita un gasto puntual (lugar, monto, categoria). La fecha no se puede editar
+ * porque es la sort key de la tabla.
+ * @param {string} expenseId
+ * @param {string} date - Ej: "2026-07-11"
+ * @param {{place: string, amount: number, category: string}} updates
+ */
+export async function updateExpense(expenseId, date, updates) {
+  const { tokens } = await fetchAuthSession()
+  const res = await fetch(`${API_BASE}/expenses/${expenseId}?date=${date}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: tokens.idToken.toString(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
+  return res.json()
+}
+
+/**
  * Devuelve el mes actual en formato "YYYY-MM"
  */
 export function currentMonth() {

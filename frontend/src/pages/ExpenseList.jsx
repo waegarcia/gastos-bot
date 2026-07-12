@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getExpenses, currentMonth } from '../services/api'
+import { getExpenses, deleteExpense, currentMonth } from '../services/api'
 import MonthPicker from '../components/MonthPicker'
 
 const CATEGORY_COLORS = {
@@ -22,6 +22,7 @@ export default function ExpenseList() {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -38,6 +39,19 @@ export default function ExpenseList() {
   const formatDate = (dateStr) => {
     const [year, month, day] = dateStr.split('-')
     return `${day}/${month}/${year}`
+  }
+
+  async function handleDelete(expense) {
+    if (!confirm(`¿Borrar el gasto de ${expense.place} (${formatARS(expense.amount)})?`)) return
+    setDeletingId(expense.expense_id)
+    try {
+      await deleteExpense(expense.expense_id, expense.date)
+      setExpenses((prev) => prev.filter((e) => e.expense_id !== expense.expense_id))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -72,6 +86,7 @@ export default function ExpenseList() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Categoría</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Cargado por</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Monto</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -94,6 +109,15 @@ export default function ExpenseList() {
                   <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right whitespace-nowrap">
                     {formatARS(e.amount)}
                   </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => handleDelete(e)}
+                      disabled={deletingId === e.expense_id}
+                      className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+                    >
+                      {deletingId === e.expense_id ? 'Borrando...' : 'Borrar'}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -105,6 +129,7 @@ export default function ExpenseList() {
                 <td className="px-4 py-3 text-sm font-bold text-gray-800 text-right">
                   {formatARS(expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0))}
                 </td>
+                <td></td>
               </tr>
             </tfoot>
           </table>

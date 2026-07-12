@@ -122,7 +122,38 @@ fi
 
 echo ""
 echo "============================================"
-echo " PASO 5: Permiso para que API Gateway invoque Lambda"
+echo " PASO 5: Crear ruta DELETE /expenses/{expense_id}"
+echo "============================================"
+
+DELETE_ROUTE_PATH="/expenses/{expense_id}"
+AUTHORIZER_ID="59l3k6"
+
+EXISTING_DELETE_ROUTE=$(aws apigatewayv2 get-routes \
+    --api-id "$API_ID" \
+    --region "$REGION" \
+    --query "Items[?RouteKey=='DELETE $DELETE_ROUTE_PATH'].RouteId" \
+    --output text)
+
+if [ -n "$EXISTING_DELETE_ROUTE" ]; then
+    DELETE_ROUTE_ID="$EXISTING_DELETE_ROUTE"
+    echo "Ruta ya existe: $DELETE_ROUTE_ID"
+else
+    echo "Creando ruta DELETE $DELETE_ROUTE_PATH..."
+    DELETE_ROUTE_ID=$(aws apigatewayv2 create-route \
+        --api-id "$API_ID" \
+        --route-key "DELETE $DELETE_ROUTE_PATH" \
+        --target "integrations/$INTEGRATION_ID" \
+        --authorization-type "JWT" \
+        --authorizer-id "$AUTHORIZER_ID" \
+        --region "$REGION" \
+        --query 'RouteId' \
+        --output text)
+    echo "OK: Route ID = $DELETE_ROUTE_ID"
+fi
+
+echo ""
+echo "============================================"
+echo " PASO 6: Permisos para que API Gateway invoque Lambda"
 echo "============================================"
 
 SOURCE_ARN="arn:aws:execute-api:$REGION:$ACCOUNT_ID:$API_ID/$STAGE/GET$ROUTE_PATH"
@@ -137,9 +168,20 @@ aws lambda add-permission \
     --region "$REGION" \
     --output table 2>/dev/null && echo "OK: Permiso agregado" || echo "OK: Permiso ya existia, continuando..."
 
+DELETE_SOURCE_ARN="arn:aws:execute-api:$REGION:$ACCOUNT_ID:$API_ID/$STAGE/DELETE$DELETE_ROUTE_PATH"
+
+aws lambda add-permission \
+    --function-name "$FUNCTION_NAME" \
+    --statement-id "apigateway-delete-expenses" \
+    --action "lambda:InvokeFunction" \
+    --principal "apigateway.amazonaws.com" \
+    --source-arn "$DELETE_SOURCE_ARN" \
+    --region "$REGION" \
+    --output table 2>/dev/null && echo "OK: Permiso agregado" || echo "OK: Permiso ya existia, continuando..."
+
 echo ""
 echo "============================================"
-echo " PASO 6: Re-deployar stage prod"
+echo " PASO 7: Re-deployar stage prod"
 echo "============================================"
 aws apigatewayv2 create-deployment \
     --api-id "$API_ID" \
@@ -156,9 +198,11 @@ echo ""
 echo "Endpoint disponible en:"
 echo "  GET https://$API_ID.execute-api.$REGION.amazonaws.com/$STAGE$ROUTE_PATH"
 echo "  GET https://$API_ID.execute-api.$REGION.amazonaws.com/$STAGE$ROUTE_PATH?month=2026-07"
+echo "  DELETE https://$API_ID.execute-api.$REGION.amazonaws.com/$STAGE$DELETE_ROUTE_PATH?date=YYYY-MM-DD"
 echo ""
 echo "IDs para referencia:"
-echo "  Lambda ARN:     $LAMBDA_ARN"
-echo "  Integration ID: $INTEGRATION_ID"
-echo "  Route ID:       $ROUTE_ID"
+echo "  Lambda ARN:      $LAMBDA_ARN"
+echo "  Integration ID:  $INTEGRATION_ID"
+echo "  Route ID (GET):  $ROUTE_ID"
+echo "  Route ID (DELETE): $DELETE_ROUTE_ID"
 echo ""

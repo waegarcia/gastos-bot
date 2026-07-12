@@ -28,6 +28,21 @@ export async function getExpenses(month = null) {
 }
 
 /**
+ * Borra un gasto puntual. expense_id es la PK, date es la SK (ambos requeridos por DynamoDB).
+ * @param {string} expenseId
+ * @param {string} date - Ej: "2026-07-11"
+ */
+export async function deleteExpense(expenseId, date) {
+  const { tokens } = await fetchAuthSession()
+  const res = await fetch(`${API_BASE}/expenses/${expenseId}?date=${date}`, {
+    method: 'DELETE',
+    headers: { Authorization: tokens.idToken.toString() },
+  })
+  if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
+  return res.json()
+}
+
+/**
  * Devuelve el mes actual en formato "YYYY-MM"
  */
 export function currentMonth() {

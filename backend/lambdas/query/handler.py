@@ -5,8 +5,24 @@ from boto3.dynamodb.conditions import Key
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('gastos')
 
+CORS_HEADERS = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+}
+
 
 def lambda_handler(event, context):
+    method = event.get('requestContext', {}).get('http', {}).get('method', 'GET')
+
+    if method == 'DELETE':
+        return _delete_expense(event)
+
+    return _list_expenses(event)
+
+
+def _list_expenses(event):
     try:
         params = event.get('queryStringParameters') or {}
         month = params.get('month')  # formato esperado: "2026-07"
@@ -41,12 +57,7 @@ def lambda_handler(event, context):
 
         return {
             'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET,OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
-            },
+            'headers': CORS_HEADERS,
             'body': json.dumps(items)
         }
 
@@ -54,9 +65,36 @@ def lambda_handler(event, context):
         print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
+            'headers': CORS_HEADERS,
+            'body': json.dumps({'error': 'Internal server error'})
+        }
+
+
+def _delete_expense(event):
+    try:
+        expense_id = (event.get('pathParameters') or {}).get('expense_id')
+        date = (event.get('queryStringParameters') or {}).get('date')
+
+        # date es la sort key de la tabla, sin ella no se puede identificar el item a borrar
+        if not expense_id or not date:
+            return {
+                'statusCode': 400,
+                'headers': CORS_HEADERS,
+                'body': json.dumps({'error': 'Faltan expense_id o date'})
+            }
+
+        table.delete_item(Key={'expense_id': expense_id, 'date': date})
+
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({'deleted': expense_id})
+        }
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return {
+            'statusCode': 500,
+            'headers': CORS_HEADERS,
             'body': json.dumps({'error': 'Internal server error'})
         }

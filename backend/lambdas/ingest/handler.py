@@ -37,6 +37,7 @@ def lambda_handler(event, context):
         message = body.get('message', {})
         chat_id = message.get('chat', {}).get('id')
         text = message.get('text', '')
+        logged_by = message.get('from', {}).get('first_name', 'Desconocido')
 
         print(f"Update recibido: chat_id={chat_id} chat_type={message.get('chat', {}).get('type')} text={text!r}")
 
@@ -57,7 +58,8 @@ def lambda_handler(event, context):
             amount=parsed['amount'],
             category=parsed['category'],
             date=parsed['date'],
-            raw_message=text
+            raw_message=text,
+            logged_by=logged_by
         )
 
         reply = (

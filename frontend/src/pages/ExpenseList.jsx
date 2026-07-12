@@ -70,6 +70,7 @@ export default function ExpenseList() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Fecha</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Lugar</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Categoría</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Cargado por</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Monto</th>
               </tr>
             </thead>
@@ -87,6 +88,9 @@ export default function ExpenseList() {
                       {e.category}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                    {e.logged_by || '-'}
+                  </td>
                   <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right whitespace-nowrap">
                     {formatARS(e.amount)}
                   </td>
@@ -95,7 +99,7 @@ export default function ExpenseList() {
             </tbody>
             <tfoot className="bg-gray-50 border-t border-gray-200">
               <tr>
-                <td colSpan={3} className="px-4 py-3 text-sm font-medium text-gray-500">
+                <td colSpan={4} className="px-4 py-3 text-sm font-medium text-gray-500">
                   {expenses.length} gastos
                 </td>
                 <td className="px-4 py-3 text-sm font-bold text-gray-800 text-right">

@@ -5,7 +5,7 @@ from datetime import datetime
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('gastos')
 
-def save_expense(place, amount, category, date, raw_message):
+def save_expense(place, amount, category, date, raw_message, logged_by):
     item = {
         'expense_id': str(uuid.uuid4()),
         'date': date,
@@ -14,7 +14,8 @@ def save_expense(place, amount, category, date, raw_message):
         'amount': str(amount),
         'currency': 'ARS',
         'category': category,
-        'raw_message': raw_message
+        'raw_message': raw_message,
+        'logged_by': logged_by
     }
     table.put_item(Item=item)
     return item

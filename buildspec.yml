@@ -28,6 +28,9 @@ phases:
       - echo "=== Deploy Lambda gastos-query ==="
       - cd backend/lambdas/query && bash deploy.sh && cd -
 
+      - echo "=== Deploy Lambda gastos-monthly-summary ==="
+      - cd backend/lambdas/summary && bash deploy.sh && cd -
+
       - echo "=== Build frontend ==="
       - cd frontend && npm ci && npm run build && cd -
 

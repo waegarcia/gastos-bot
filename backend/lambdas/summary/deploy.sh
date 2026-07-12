@@ -69,8 +69,8 @@ echo "============================================"
 echo " PASO 3: Crear o actualizar EventBridge Schedule"
 echo "============================================"
 
-# Corre el dia 1 de cada mes a las 09:00 hora Argentina, manda el resumen del mes anterior
-SCHEDULE_EXPRESSION="cron(0 9 1 * ? *)"
+# Corre el dia 1 de cada mes a las 13:00 hora Argentina, manda el resumen del mes anterior
+SCHEDULE_EXPRESSION="cron(0 13 1 * ? *)"
 TARGET="{\"Arn\":\"$LAMBDA_ARN\",\"RoleArn\":\"$SCHEDULER_ROLE_ARN\"}"
 
 if aws scheduler get-schedule --name "$SCHEDULE_NAME" --region "$REGION" > /dev/null 2>&1; then
@@ -119,7 +119,7 @@ echo " DEPLOY COMPLETO"
 echo "============================================"
 echo ""
 echo "Lambda: $FUNCTION_NAME"
-echo "Corre: dia 1 de cada mes, 09:00 hora Argentina (schedule '$SCHEDULE_NAME')"
+echo "Corre: dia 1 de cada mes, 13:00 hora Argentina (schedule '$SCHEDULE_NAME')"
 echo ""
 echo "IDs para referencia:"
 echo "  Lambda ARN:   $LAMBDA_ARN"

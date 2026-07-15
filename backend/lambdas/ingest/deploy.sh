@@ -58,6 +58,12 @@ fi
 echo "Esperando que la funcion este activa..."
 aws lambda wait function-active --function-name "$FUNCTION_NAME" --region "$REGION"
 
+# function-active solo confirma que la funcion esta disponible, no que la actualizacion de
+# codigo termino de aplicarse (LastUpdateStatus) - sin este wait, el update-function-configuration
+# del layer en PASO 2b puede chocar con un ResourceConflictException
+echo "Esperando que la actualizacion de codigo termine de aplicarse..."
+aws lambda wait function-updated --function-name "$FUNCTION_NAME" --region "$REGION"
+
 LAMBDA_ARN=$(aws lambda get-function \
     --function-name "$FUNCTION_NAME" \
     --region "$REGION" \

@@ -66,6 +66,27 @@ echo "OK: Lambda ARN = $LAMBDA_ARN"
 
 echo ""
 echo "============================================"
+echo " PASO 2b: Adjuntar ultima version del Lambda Layer compartido"
+echo "============================================"
+
+LAYER_ARN=$(aws lambda list-layer-versions \
+    --layer-name gastos-telegram-common \
+    --region "$REGION" \
+    --query 'LayerVersions[0].LayerVersionArn' \
+    --output text)
+
+aws lambda update-function-configuration \
+    --function-name "$FUNCTION_NAME" \
+    --layers "$LAYER_ARN" \
+    --region "$REGION" \
+    --output table
+
+echo "Esperando que la configuracion se actualice..."
+aws lambda wait function-updated --function-name "$FUNCTION_NAME" --region "$REGION"
+echo "OK: Layer adjuntado = $LAYER_ARN"
+
+echo ""
+echo "============================================"
 echo " PASO 3: Crear o actualizar EventBridge Schedule"
 echo "============================================"
 

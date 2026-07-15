@@ -22,6 +22,9 @@ phases:
 
   build:
     commands:
+      - echo "=== Deploy Lambda Layer gastos-telegram-common ==="
+      - cd backend/layers/telegram_common && bash deploy.sh && cd -
+
       - echo "=== Deploy Lambda gastos-ingest ==="
       - cd backend/lambdas/ingest && bash deploy.sh && cd -
 

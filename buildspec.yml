@@ -19,6 +19,9 @@ phases:
     commands:
       - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - export VITE_AWS_REGION=$AWS_REGION
+      - echo "=== Correr tests del parser de categorias (gastos-ingest) ==="
+      - pip install -r backend/lambdas/ingest/requirements-dev.txt --quiet
+      - cd backend/lambdas/ingest && python -m pytest tests/ -v && cd -
 
   build:
     commands:

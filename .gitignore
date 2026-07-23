@@ -10,8 +10,11 @@ frontend/.env.*.local
 frontend/dist/
 backend/lambdas/query/query.zip
 backend/lambdas/ingest/ingest.zip
+backend/lambdas/summary/summary.zip
+backend/layers/telegram_common/layer.zip
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # OS
 .DS_Store

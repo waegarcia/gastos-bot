@@ -43,6 +43,12 @@ class TestDetectCategory:
     def test_accents_normalized(self):
         assert _detect_category('Carnicería $9000') == 'ALIMENTACION'
 
+    def test_panaderia_sin_acento(self):
+        assert _detect_category('Panaderia $1500') == 'ALIMENTACION'
+
+    def test_panaderia_con_acento(self):
+        assert _detect_category('Panadería $1500') == 'ALIMENTACION'
+
     def test_unmatched_falls_back_to_otros(self):
         assert _detect_category('Cine $5000') == 'OTROS'
 
@@ -51,7 +57,7 @@ class TestDetectCategory:
         assert _detect_category('Acabar de comprar algo $500') == 'OTROS'
 
     def test_known_false_positive_aca(self):
-        # Riesgo conocido y aceptado (ver CLAUDE.md): el keyword "aca" (club
+        # Riesgo conocido y aceptado (ver AGENTS.md): el keyword "aca" (club
         # automotor ACA) matchea contra la palabra comun "aca" como adverbio
         # de lugar. Este test documenta el comportamiento actual, no lo corrige.
         assert _detect_category('Compre esto por aca cerca $500') == 'AUTOMOVIL'

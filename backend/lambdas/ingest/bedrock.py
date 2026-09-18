@@ -5,7 +5,7 @@ from datetime import datetime
 AMOUNT_PATTERN = r'\$\s*(\d[\d.,]*)'  # "$" obligatorio, para no confundir horas/numeros sueltos con montos
 
 CATEGORY_KEYWORDS = {
-    'ALIMENTACION': ['coto', 'jumbo', 'carrefour', 'disco', 'dietetica', 'frizata', 'delivery', 'carniceria', 'almacen', 'verduleria', 'kiosco', 'supermercado'],
+    'ALIMENTACION': ['coto', 'jumbo', 'carrefour', 'disco', 'dietetica', 'frizata', 'delivery', 'carniceria', 'almacen', 'verduleria', 'kiosco', 'supermercado', 'panaderia'],
     'TRANSPORTE': ['sube', 'uber', 'cabify'],
     'SALUD': ['farmacia', 'suplementos', 'farmacity'],
     'MASCOTAS': ['petshop', 'bano perros', 'guarderia perros', 'peluqueria perros'],

@@ -26,4 +26,4 @@ Thumbs.db
 *.swp
 
 # Contexto interno (contiene IDs reales de AWS)
-CLAUDE.md
+AGENTS.md
